@@ -1,0 +1,6 @@
+TRADE DURATION SUMMARY
+Total trades           : 8680
+Normal 3-day trades    : 1740
+Short trades (<3 days) : 6940
+
+ERROR: Short-duration trades found! Possible dataset problem.

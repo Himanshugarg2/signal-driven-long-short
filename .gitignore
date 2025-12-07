@@ -38,4 +38,5 @@ Thumbs.db
 *.tmp
 
 # Ignore generated data
-Scripts/data/
+Scripts/EDA.py
+Scripts/helper.py
