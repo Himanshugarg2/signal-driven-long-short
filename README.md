@@ -10,14 +10,10 @@ This project generates and processes synthetic financial datasets for signal-dri
 
 **Windows:**
 ```powershell
-python -m venv venv
+C:\Python39\python.exe -m venv venv
 .\venv\Scripts\activate
 ```
-**macOS/Linux:**
-```bash
-C:\Python39\python.exe -m venv venv
-source venv/bin/activate
-```
+
 
 ## 2. Install Requirements
 ```bash

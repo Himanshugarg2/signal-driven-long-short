@@ -15,7 +15,7 @@ ENV/
 .ipynb_checkpoints/
 
 # Data
-*.csv
+
 *.tsv
 *.parquet
 *.h5
@@ -37,6 +37,6 @@ Thumbs.db
 *.bak
 *.tmp
 
-# Ignore generated data
+
 Scripts/EDA.py
 Scripts/helper.py
