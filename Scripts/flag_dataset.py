@@ -1,24 +1,24 @@
 """
-flag_dataset.py (CORRECTED)
+flag_dataset.py (FINAL CLEAN VERSION)
 
-Flags all tickers that will disappear within the next 1, 2, or 3 TRADING days.
+Flags all tickers that will disappear within the next H trading days.
 
 Adds:
-- days_to_vanish_trading : number of future trading days before ticker disappears
-- disappears_t1 : disappears tomorrow → must EXIT today
-- disappears_t2 : disappears in 2 trading days → cannot BUY today
-- disappears_t3 : disappears in 3 trading days → cannot BUY today
-- unsafe_to_trade : True if disappears in next 1–3 trading days → DO NOT BUY
+- days_to_vanish_trading : number of future TRADING DAYS before ticker disappears
+- disappears_t1 : disappears tomorrow → MUST EXIT today
+- unsafe_to_trade : True if ticker disappears in next H days (H = holding_period)
 
 Input:  data/synthetic_clean.csv
 Output: data/synthetic_flagged.csv
 """
 
 import pandas as pd
-import numpy as np
 
 INPUT_FILE = "data/synthetic_clean.csv"
 OUTPUT_FILE = "data/synthetic_flagged.csv"
+
+
+HOLDING_PERIOD = 3  # Change it according to backtest config
 
 
 def flag_dataset():
@@ -30,25 +30,26 @@ def flag_dataset():
     df = pd.read_csv(INPUT_FILE, parse_dates=["date"])
     print("Loaded:", len(df), "rows")
 
-    # Ensure proper ordering
+    # Sort properly
     df = df.sort_values(["ticker", "date"]).copy()
 
     df["rank_desc"] = (
         df.groupby("ticker")["date"].rank(method="first", ascending=False).astype(int)
     )
-    df["days_to_vanish_trading"] = df["rank_desc"] - 1
-    df["disappears_t1"] = df["days_to_vanish_trading"] == 1
-    df["disappears_t2"] = df["days_to_vanish_trading"] == 2
-    df["disappears_t3"] = df["days_to_vanish_trading"] == 3
-    df["unsafe_to_trade"] = df["days_to_vanish_trading"].between(1, 3)
-    print("\nFlag counts:")
-    print(
-        df[["disappears_t1", "disappears_t2", "disappears_t3", "unsafe_to_trade"]].sum()
-    )
 
-    sample = df[df["days_to_vanish_trading"].between(1, 3)].head(10)
+    df["days_to_vanish_trading"] = df["rank_desc"] - 1
+
+    # If ticker disappears TOMORROW → must exit today
+    df["disappears_t1"] = df["days_to_vanish_trading"] == 1
+
+    # Unsafe to trade if disappearing within holding period
+    df["unsafe_to_trade"] = df["days_to_vanish_trading"].between(1, HOLDING_PERIOD)
+
+    print("\nFlag counts:")
+    print(df[["disappears_t1", "unsafe_to_trade"]].sum())
 
     print("\nSample vanish cases:\n")
+    sample = df[df["unsafe_to_trade"] == True].head(10)
     print(
         sample[
             [
@@ -56,18 +57,13 @@ def flag_dataset():
                 "date",
                 "days_to_vanish_trading",
                 "disappears_t1",
-                "disappears_t2",
-                "disappears_t3",
+                "unsafe_to_trade",
             ]
         ]
     )
 
-    # Cleanup helper column
+    # Cleanup helper
     df.drop(columns=["rank_desc"], inplace=True)
-
-    # ---------------------------------------------------------
-    # Save output
-    # ---------------------------------------------------------
     df.to_csv(OUTPUT_FILE, index=False)
 
     print("\n==============================")

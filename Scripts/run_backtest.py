@@ -3,11 +3,13 @@ import numpy as np
 import vectorbt as vbt
 import os
 
-# --- Configuration ---
 PRICES_FILE = "data/trading/trading_prices.csv"
 WEIGHTS_FILE = "data/trading/trading_weights.csv"
 RESULT_DIR = "results"
 os.makedirs(RESULT_DIR, exist_ok=True)
+
+# Must match the period used in build_trading_dataset.py
+HOLDING_PERIOD = 3
 
 
 def run_backtest():
@@ -23,21 +25,15 @@ def run_backtest():
     print("Prices shape :", prices.shape)
     print("Weights shape:", weights.shape)
 
-    # 2. Build Portfolio using 'from_orders'
-    #    This is the Robust Method for Target Weights.
-    #    - size=weights: Pass the matrix directly (NaNs, 0.0s, and 0.16s).
-    #    - size_type='targetpercent': Tells VBT these are % allocation targets.
-    #    - VBT automatically handles 'NaN' as "Don't Trade" (Hold).
-
+    # 2. Run Portfolio (NaN = Hold, 0.0 = Close)
     portfolio = vbt.Portfolio.from_orders(
         close=prices,
         size=weights,
         size_type="targetpercent",
         init_cash=1_000_000,
         fees=0.0012,
-        cash_sharing=True,  # Required for Long/Short mixing
+        cash_sharing=True,
         freq="1D",
-        # 'call_seq' helps resolve order of operations if multiple trades happen on same tick
         call_seq="auto",
     )
 
@@ -57,7 +53,6 @@ def run_backtest():
     # ==========================================================
     # TRADE LOG & DURATION CHECK
     # ==========================================================
-    # Use the stable .records attribute
     trade_records = portfolio.trades.records
 
     trade_df = pd.DataFrame(
@@ -81,23 +76,21 @@ def run_backtest():
 
     trade_df.to_csv(f"{RESULT_DIR}/trade_log.csv", index=False)
 
-    # Check for Short Trades
+    # Check for Short Trades based on dynamic HOLDING_PERIOD
     total = len(trade_df)
-    # A normal trade is 3 days (e.g. Buy Mon, Sell Thu = 3 days)
-    # Allow 3 or 4 days depending on weekend gaps, but <3 is suspicious.
-    short = len(trade_df[trade_df["duration_days"] < 3])
+    short = len(trade_df[trade_df["duration_days"] < HOLDING_PERIOD])
 
     print("\n==============================")
     print(" TRADE DURATION SUMMARY ")
     print("==============================")
     print(f"Total trades           : {total}")
-    print(f"Short trades (<3 days) : {short}")
+    print(f"Short trades (<{HOLDING_PERIOD} days) : {short}")
 
     if short == 0:
         print("\nPERFECT: All trades held for full duration.")
     else:
         print("\nWARNING: Some trades were exited early.")
-        print(trade_df[trade_df["duration_days"] < 3].head())
+        print(trade_df[trade_df["duration_days"] < HOLDING_PERIOD].head())
 
     # Save summary
     with open(f"{RESULT_DIR}/summary.txt", "w") as f:
