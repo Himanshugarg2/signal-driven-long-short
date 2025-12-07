@@ -59,7 +59,3 @@ python run_backtest.py
   - `trade_log.csv`
 
 ---
-
-**Tip:**
-- Run each script from the `Scripts` directory for correct relative paths.
-- Review and edit scripts as needed for custom logic or parameters.
