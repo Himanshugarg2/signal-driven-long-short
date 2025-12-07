@@ -33,32 +33,14 @@ def flag_dataset():
     # Ensure proper ordering
     df = df.sort_values(["ticker", "date"]).copy()
 
-    # ---------------------------------------------------------
-    # STEP 1 — Compute trading-day distance (correct method)
-    # ---------------------------------------------------------
-    # rank_desc = 1 → last trading day
     df["rank_desc"] = (
         df.groupby("ticker")["date"].rank(method="first", ascending=False).astype(int)
     )
-
-    # days_to_vanish_trading:
-    # rank 1 → 0 days left (last day)
-    # rank 2 → 1 day left (vanishes tomorrow)
     df["days_to_vanish_trading"] = df["rank_desc"] - 1
-
-    # ---------------------------------------------------------
-    # STEP 2 — Create flags based on TRADING-DAY vanish rules
-    # ---------------------------------------------------------
     df["disappears_t1"] = df["days_to_vanish_trading"] == 1
     df["disappears_t2"] = df["days_to_vanish_trading"] == 2
     df["disappears_t3"] = df["days_to_vanish_trading"] == 3
-
-    # Unsafe if ticker disappears within next 3 trading days
     df["unsafe_to_trade"] = df["days_to_vanish_trading"].between(1, 3)
-
-    # ---------------------------------------------------------
-    # Diagnostics
-    # ---------------------------------------------------------
     print("\nFlag counts:")
     print(
         df[["disappears_t1", "disappears_t2", "disappears_t3", "unsafe_to_trade"]].sum()
